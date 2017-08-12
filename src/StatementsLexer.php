@@ -8,9 +8,10 @@ class StatementsLexer
     private $patterns = [
         'whitespace' => '\s+',
         'comment' => [
-            '-- .*$',
-            '\/\*.*\*\/'
+            '-- .*[\r\n]*',
+            '\/\*[^\r^\n]*\*\/'
         ],
+        'multilineComments' => '\/\*.*\*\/',
         'stringLiteral' => [
             '"([^"]*(?:"")*)*"(?=\s|$|;)',
             '\'.*\'(?=\\s|$)'
@@ -24,27 +25,40 @@ class StatementsLexer
     }
     
     public function lex($input){
-        $lines = mb_split("\n|\r\n", $input);
-        foreach($lines as $line){
-            $this->lexLine($line);
-        }
-    }
-    
-    private function lexLine($line){
         $this->position = 0;
-        while($this->position < mb_strlen($line)){
-            if(!$this->matchNext(mb_substr($line, $this->position))){
+        while($this->position < mb_strlen($input)){
+            if(!$this->matchNext(mb_substr($input, $this->position))){
                 $this->position++;
             }
         }
     }
     
-        private function matchNext($line){
-            return $this->matchWhitespace($line) ||
-                    $this->matchSingleCharacter($line) ||
-                    $this->matchComment($line) ||
-                    $this->matchStringLiteral($line) ||
-                    $this->matchUnknown($line);
+        private function matchNext($str){
+            return $this->matchWhitespace($str) ||
+                    $this->matchSingleCharacter($str) ||
+                    $this->matchComment($str) ||
+                    $this->matchMultilineComments($str) ||
+                    $this->matchStringLiteral($str) ||
+                    $this->matchUnknown($str);
+        }
+        
+        private function matchMultilineComments($line){
+            $comments = $this->match('multilineComments', $line, 'm');
+            if($comments){
+                mb_ereg('(?:\/\*)(.*[\r\n]*.*)(?:\*\/)', $comments, $match);
+                $comments = $match[1];
+                mb_ereg_search_init($comments, '(.*)(?:[\r\n]*|$)', '');
+                do{
+                    mb_ereg_search();
+                    if($match = mb_ereg_search_getregs()){
+                        $this->collector->comment($match[1]);
+                    }
+                }while (mb_ereg_search_getpos() < mb_strlen($comments));
+                return true;
+            }
+            else {
+                return false;
+            }
         }
         
         private function matchSingleCharacter($line){
@@ -75,7 +89,8 @@ class StatementsLexer
         }
         
             private function match($name, $line, $modifiers = ''){
-                //print "\nline is $line";
+                print "\nmatching $name in $line";
+                //print "\nin hex it is".(bin2hex($line));
                 $patterns = $this->patterns[$name];
                 if(!is_array($patterns)){
                     $patterns = [$patterns];
@@ -83,10 +98,11 @@ class StatementsLexer
                 foreach($patterns as $pattern){
                     mb_ereg_search_init($line);
                     if($matches = mb_ereg_search_regs('^'.$pattern, $modifiers)){
-                        //var_dump($matches);
+                        var_dump($matches);
                         $token = $matches[0];
                         $this->position += mb_strlen($token);
-                        //print "\nfound $token";
+                        print "\nfound $token";
+                        //var_dump(bin2hex($token));
                         return $token;
                     }
                 }
@@ -96,13 +112,14 @@ class StatementsLexer
         private function matchComment($line){
             if($comment = $this->match('comment', $line)){
                 $styles = [
-                    ['(?<=-- ).*$', 0],
-                    ['(?:/\*)(.*)(?:\*\/)', 1]
+                    ['(?:-- )([^\r^\n]*)(?=[\r\n]+|$)', 1, ''],
+                    ['(?:/\*)(.*)(?:\*\/)', 1, '']
                 ];
                 foreach($styles as $pattern){
-                    //print "\npattern {$pattern[0]} will try on $comment";
-                    if(mb_ereg($pattern[0], $comment, $match)){
-                        //var_dump($match);
+                    print "\npattern {$pattern[0]} will try on $comment - ". bin2hex($comment);
+                    mb_ereg_search_init($comment);
+                    if($match = mb_ereg_search_regs($pattern[0])){
+                        var_dump(bin2hex($match[1]));
                         $this->collector->comment($match[$pattern[1]]);
                         return true;
                     }
