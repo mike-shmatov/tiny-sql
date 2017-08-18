@@ -9,12 +9,19 @@ class StatementsLexer
         'whitespace' => '\s+',
         'comment' => [
             '-- .*[\r\n]*',
-            '\/\*[^\r^\n]*\*\/'
+//            '\/\*[^\r^\n]*\*\/'
         ],
         'multilineComments' => '\/\*.*\*\/',
+        'specialConstucts' => [
+            '\/\*!',
+            '\*\/'
+        ],
         'stringLiteral' => [
             '"([^"]*(?:"")*)*"(?=\s|$|;)',
-            '\'.*\'(?=\\s|$)'
+            "'([^']*(?:'')*)*'(?=\\s|$|;)"
+        ],
+        'token' => [
+            '\w[\w\d]*(?=\s|$|;|\W)'
         ],
         'unknown' => '.*?(?=\s|$|;)',
         'singleCharacter' => ';'
@@ -37,104 +44,135 @@ class StatementsLexer
             return $this->matchWhitespace($str) ||
                     $this->matchSingleCharacter($str) ||
                     $this->matchComment($str) ||
+                    $this->matchSpecialConstruct($str) ||
                     $this->matchMultilineComments($str) ||
                     $this->matchStringLiteral($str) ||
+                    $this->matchToken($str) ||
                     $this->matchUnknown($str);
         }
-        
-        private function matchMultilineComments($line){
-            $comments = $this->match('multilineComments', $line, 'm');
-            if($comments){
-                mb_ereg('(?:\/\*)(.*[\r\n]*.*)(?:\*\/)', $comments, $match);
-                $comments = $match[1];
-                mb_ereg_search_init($comments, '(.*)(?:[\r\n]*|$)', '');
-                do{
-                    mb_ereg_search();
-                    if($match = mb_ereg_search_getregs()){
-                        $this->collector->comment($match[1]);
-                    }
-                }while (mb_ereg_search_getpos() < mb_strlen($comments));
-                return true;
+            
+            private function matchWhitespace($line){
+                return $this->match('whitespace', $line);
             }
-            else {
+
+            private function matchSingleCharacter($line){
+                $char = $this->match('singleCharacter', $line);
+                if($char){
+                    switch($char){
+                        case ';':
+                            $this->collector->semicolon();
+                            break;
+                    }
+                    return true;
+                }
+                else {
+                    return false;
+                }
+            }
+        
+            private function matchMultilineComments($line){
+                $comments = $this->match('multilineComments', $line, 'm');
+                if($comments){
+                    mb_ereg('(?:\/\*)(.*[\r\n]*.*)(?:\*\/)', $comments, $match);
+                    $comments = $match[1];
+                    mb_ereg_search_init($comments, '(.*)(?:[\r\n]*|$)', '');
+                    do{
+                        mb_ereg_search();
+                        if($match = mb_ereg_search_getregs()){
+                            $this->collector->comment($match[1]);
+                        }
+                    }
+                    while (mb_ereg_search_getpos() < mb_strlen($comments));
+                    return true;
+                }
+                else {
+                    return false;
+                }
+            }
+            
+            private function matchSpecialConstruct($line){
+                $special = $this->match('specialConstucts', $line, '');
+                if($special){
+                    switch($special){
+                        case '/*!':
+                            $this->collector->openSpecialComment();
+                            break;
+                        case '*/':
+                            $this->collector->closeComment();
+                            break;
+                    }
+                    return true;
+                }
+                else {
+                    return false;
+                }
+            }
+            
+            private function matchToken($line){
+                if($token = $this->match('token', $line)){
+                    $this->collector->token($token);
+                    return true;
+                }
+                else {
+                    return false;
+                }
+            }
+
+            private function matchUnknown($line){
+                if($unknown = $this->match('unknown', $line)){
+                    $this->collector->unknown($unknown);
+                    return true;
+                }
                 return false;
             }
-        }
-        
-        private function matchSingleCharacter($line){
-            $char = $this->match('singleCharacter', $line);
-            if($char){
-                switch($char){
-                    case ';':
-                        $this->collector->semicolon();
-                        break;
-                }
-                return true;
-            }
-            else {
-                return false;
-            }
-        }
-        
-        private function matchUnknown($line){
-            if($unknown = $this->match('unknown', $line)){
-                $this->collector->unknown($unknown);
-                return true;
-            }
-            return false;
-        }
-        
-        private function matchWhitespace($line){
-            return $this->match('whitespace', $line);
-        }
-        
-            private function match($name, $line, $modifiers = ''){
-                print "\nmatching $name in $line";
-                //print "\nin hex it is".(bin2hex($line));
-                $patterns = $this->patterns[$name];
-                if(!is_array($patterns)){
-                    $patterns = [$patterns];
-                }
-                foreach($patterns as $pattern){
-                    mb_ereg_search_init($line);
-                    if($matches = mb_ereg_search_regs('^'.$pattern, $modifiers)){
-                        var_dump($matches);
-                        $token = $matches[0];
-                        $this->position += mb_strlen($token);
-                        print "\nfound $token";
-                        //var_dump(bin2hex($token));
-                        return $token;
+
+            private function matchComment($line){
+                if($comment = $this->match('comment', $line)){
+                    $styles = [
+                        ['(?:-- )([^\r^\n]*)(?=[\r\n]+|$)', 1, ''],
+                        ['(?:/\*)(.*)(?:\*\/)', 1, '']
+                    ];
+                    foreach($styles as $pattern){
+//                        print "\npattern {$pattern[0]} will try on $comment - ". bin2hex($comment);
+                        mb_ereg_search_init($comment);
+                        if($match = mb_ereg_search_regs($pattern[0])){
+//                            var_dump(bin2hex($match[1]));
+                            $this->collector->comment($match[$pattern[1]]);
+                            return true;
+                        }
+                        //var_dump($match);
                     }
+
+                }
+                else return false;
+            }
+
+            private function matchStringLiteral($line){
+                if($literal = $this->match('stringLiteral', $line, 'l')){
+                    $this->collector->stringLiteral($literal);
+                    return true;
                 }
                 return false;
             }
-        
-        private function matchComment($line){
-            if($comment = $this->match('comment', $line)){
-                $styles = [
-                    ['(?:-- )([^\r^\n]*)(?=[\r\n]+|$)', 1, ''],
-                    ['(?:/\*)(.*)(?:\*\/)', 1, '']
-                ];
-                foreach($styles as $pattern){
-                    print "\npattern {$pattern[0]} will try on $comment - ". bin2hex($comment);
-                    mb_ereg_search_init($comment);
-                    if($match = mb_ereg_search_regs($pattern[0])){
-                        var_dump(bin2hex($match[1]));
-                        $this->collector->comment($match[$pattern[1]]);
-                        return true;
+
+                private function match($name, $line, $modifiers = ''){
+//                    print "\nmatching $name in $line";
+                    //print "\nin hex it is".(bin2hex($line));
+                    $patterns = $this->patterns[$name];
+                    if(!is_array($patterns)){
+                        $patterns = [$patterns];
                     }
-                    //var_dump($match);
+                    foreach($patterns as $pattern){
+                        mb_ereg_search_init($line);
+                        if($matches = mb_ereg_search_regs('^'.$pattern, $modifiers)){
+//                            var_dump($matches);
+                            $token = $matches[0];
+                            $this->position += mb_strlen($token);
+//                            print "\nfound $token";
+                            //var_dump(bin2hex($token));
+                            return $token;
+                        }
+                    }
+                    return false;
                 }
-                
-            }
-            else return false;
-        }
-        
-        private function matchStringLiteral($line){
-            if($literal = $this->match('stringLiteral', $line, 'l')){
-                $this->collector->stringLiteral($literal);
-                return true;
-            }
-            return false;
-        }
 }

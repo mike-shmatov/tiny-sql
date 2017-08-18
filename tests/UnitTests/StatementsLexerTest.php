@@ -59,8 +59,8 @@ class StatementsLexerTest extends PHPUnit_Framework_TestCase
      * @test
      */
     public function canMatchBadStringAsUnknown(){
-        $this->lexer->lex('"double"Quote"');
-        $this->assertEquals('#"double"Quote"', $this->collected());
+        $this->lexer->lex('"double"Quote"'.";'single'quote'");
+        $this->assertEquals('#"double"Quote";SC;#\'single\'quote\'', $this->collected());
     }
     
     /**
@@ -76,7 +76,7 @@ class StatementsLexerTest extends PHPUnit_Framework_TestCase
      */
     public function canDoSetStatement(){
         $this->lexer->lex("SET FOREIGN_KEY_CHECKS=0;");
-        $this->assertEquals('#SET;#FOREIGN_KEY_CHECKS=0;SC', $this->collected());
+        $this->assertEquals('#SET;#FOREIGN_KEY_CHECKS;#=0;SC', $this->collected());
     }
     
     /**
@@ -92,7 +92,23 @@ class StatementsLexerTest extends PHPUnit_Framework_TestCase
      */
     public function canMatchMultilineComments(){
         $this->lexer->lex("token;/*a"."\n"."comment*/token;");
-        $this->assertEquals('#token;OMLC;REM:a;REM:comment;CMLC;#token', $this->collected());
+        $this->assertEquals('#token;SC;REM:a;REM:comment;#token;SC', $this->collected());
+    }
+    
+    /**
+     * @test
+     */
+    public function canMatchSpecialComments(){
+        $this->lexer->lex("/*!some statement*/;");
+        $this->assertEquals('SCopen;#some;#statement;Cclose;SC', $this->collected());
+    }
+    
+    /**
+     * @test
+     */
+    public function canMatchRealStatement(){
+        $this->lexer->lex('CREATE DATABASE IF NOT EXISTS `db` DEFAULT CHARACTER SET utf8 COLLATE utf8_bin;');
+        $this->assertEquals('#CREATE;#DATABASE;#IF;#NOT;#EXISTS;#`db`;#DEFAULT;#CHARACTER;#SET;#utf8;#COLLATE;#utf8_bin;SC', $this->collected());
     }
     
     /**
@@ -112,5 +128,17 @@ class StatementsLexerTest extends PHPUnit_Framework_TestCase
     
     public function semicolon(){
         $this->collected[] = 'SC';
+    }
+    
+    public function openSpecialComment(){
+        $this->collected[] = 'SCopen';
+    }
+    
+    public function closeComment(){
+        $this->collected[] = 'Cclose';
+    }
+    
+    public function token($token){
+        $this->collected[] = '#'.$token;
     }
 }
