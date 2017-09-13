@@ -133,14 +133,11 @@ class StatementsLexer
                         ['(?:/\*)(.*)(?:\*\/)', 1, '']
                     ];
                     foreach($styles as $pattern){
-//                        print "\npattern {$pattern[0]} will try on $comment - ". bin2hex($comment);
                         mb_ereg_search_init($comment);
                         if($match = mb_ereg_search_regs($pattern[0])){
-//                            var_dump(bin2hex($match[1]));
                             $this->collector->comment($match[$pattern[1]]);
                             return true;
                         }
-                        //var_dump($match);
                     }
 
                 }
@@ -156,20 +153,15 @@ class StatementsLexer
             }
 
                 private function match($name, $line, $modifiers = ''){
-//                    print "\nmatching $name in $line";
-                    //print "\nin hex it is".(bin2hex($line));
                     $patterns = $this->patterns[$name];
                     if(!is_array($patterns)){
                         $patterns = [$patterns];
                     }
                     foreach($patterns as $pattern){
                         mb_ereg_search_init($line);
-                        if($matches = mb_ereg_search_regs('^'.$pattern, $modifiers)){
-//                            var_dump($matches);
+                        if($matches = mb_ereg_search_regs('\A'.$pattern, $modifiers)){
                             $token = $matches[0];
                             $this->position += mb_strlen($token);
-//                            print "\nfound $token";
-                            //var_dump(bin2hex($token));
                             return $token;
                         }
                     }

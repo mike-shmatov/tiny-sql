@@ -43,7 +43,7 @@ class StatementsLexerTest extends PHPUnit_Framework_TestCase
      * @test
      */
     public function canDoSeveralLiterals(){
-        $this->lexer->lex('"string"'.' '."'another'".' ');
+        $this->lexer->lex('"string"'.' '."'another'".' '); // "string" 'another'
         $this->assertEquals('STR:"string";STR:\'another\'', $this->collected());
     }
     
@@ -109,6 +109,11 @@ class StatementsLexerTest extends PHPUnit_Framework_TestCase
     public function canMatchRealStatement(){
         $this->lexer->lex('CREATE DATABASE IF NOT EXISTS `db` DEFAULT CHARACTER SET utf8 COLLATE utf8_bin;');
         $this->assertEquals('#CREATE;#DATABASE;#IF;#NOT;#EXISTS;#`db`;#DEFAULT;#CHARACTER;#SET;#utf8;#COLLATE;#utf8_bin;SC', $this->collected());
+    }
+    
+    public function testWithNewlined(){
+        $this->lexer->lex('`abilityattributes`;'."\n".'CREATE');
+        $this->assertEquals('#`abilityattributes`;SC;#CREATE', $this->collected());
     }
     
     /**
