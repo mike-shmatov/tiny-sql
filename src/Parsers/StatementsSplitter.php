@@ -18,6 +18,7 @@ class StatementsSplitter
     }
     
     public function parse($source){
+        $this->builder->reset();
         $this->lexer->lex($source);
         return $this->builder->getStatements();
     }

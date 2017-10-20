@@ -41,4 +41,14 @@ class SplitStatementsBuilderTest extends PHPUnit_Framework_TestCase
         $this->expectException(\LogicException::class);
         $this->builder->getStatements();
     }
+    
+    public function testResettingBuilder(){
+        $this->builder->write('statement 1');
+        $this->builder->statementDone();
+        $this->builder->reset();
+        $this->builder->write('statement 2');
+        $this->builder->statementDone();
+        $this->assertCount(1, $this->builder->getStatements());
+        $this->assertSame('statement 2', $this->builder->getStatements()[0]);
+    }
 }

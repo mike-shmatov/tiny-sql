@@ -22,4 +22,9 @@ class SplitStatementsBuilder
     public function write($input){
         $this->statement[] = $input;
     }
+    
+    public function reset(){
+        $this->statement = [];
+        $this->statements = [];
+    }
 }

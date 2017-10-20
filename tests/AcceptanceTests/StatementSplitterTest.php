@@ -35,4 +35,11 @@ TXT;
         $withoutSpaces = preg_replace('/\s/', '', [$expected, $actual]);
         $this->assertEquals($withoutSpaces[0], $withoutSpaces[1], 'Provided statements are not equal if taken without \s characters');
     }
+    
+    public function testParsingConsecutive(){
+        $statement1 = 'STATEMENT 1;';
+        $statement2 = 'STATEMENT 2;';
+        $this->assertEquals(['STATEMENT 1 ;'], $this->splitter->parse($statement1));
+        $this->assertEquals(['STATEMENT 2 ;'], $this->splitter->parse($statement2));
+    }
 }
