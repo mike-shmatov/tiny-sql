@@ -17,14 +17,14 @@ class StatementsLexer
             '\*\/'
         ],
         'stringLiteral' => [
-            '"([^"]*(?:"")*)*"(?=\s|$|;)',
-            "'([^']*(?:'')*)*'(?=\\s|$|;)"
+            '"([^"]*(?:"")*)*"(?=\s|\W|$|;)',
+            "'([^']*(?:'')*)*'(?=\\s|\W|$|;)"
         ],
         'token' => [
             '\w[\w\d]*(?=\s|$|;|\W)'
         ],
         'unknown' => '.*?(?=\s|$|;)',
-        'singleCharacter' => ';'
+        'singleCharacter' => '(;|\()'
     ];
     
     public function __construct($colletctor){
@@ -62,6 +62,8 @@ class StatementsLexer
                         case ';':
                             $this->collector->semicolon();
                             break;
+                        default:
+                            $this->collector->unknown($char);
                     }
                     return true;
                 }

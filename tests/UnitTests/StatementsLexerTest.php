@@ -63,6 +63,16 @@ class StatementsLexerTest extends PHPUnit_Framework_TestCase
         $this->assertEquals('#"double"Quote";SC;#\'single\'quote\'', $this->collected());
     }
     
+    public function testStringWithSemicolon(){
+        $this->lexer->lex('VALUES ("one;");');
+        $this->assertEquals('#VALUES;#(;STR:"one;";#);SC', $this->collected());
+    }
+    
+    public function testSingleQuoteStringWithSemicolon(){
+        $this->lexer->lex("VALUES ('one;');");
+        $this->assertEquals('#VALUES;#(;STR:\'one;\';#);SC', $this->collected());
+    }
+    
     /**
      * @test
      */
