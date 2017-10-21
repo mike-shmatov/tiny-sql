@@ -7,10 +7,16 @@ Currently package has single useful component with functionality to split string
 ```php
 $inputString = 'CREATE TABLE tbl (col TEXT); INSERT INTO tbl (col) VALUES ("one;");';
 $splitter = Tiny\Sql\Parsers\StatementsSplitter::make();
-$statements = $this->splitter->parse($inputString);
+$statements = $splitter->parse($inputString);
 foreach($statements as $statement){
     print $statement."\n";
 }
 // CREATE TABLE tbl (col TEXT ) ;
 // INSERT INTO tbl ( col ) VALUES ( "one;" ) ;
 ```
+
+## Installing
+```
+composer require tiny/sql
+```
+

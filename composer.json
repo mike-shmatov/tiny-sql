@@ -1,12 +1,14 @@
 {
     "name": "tiny/sql",
     "description": "SQL tools library",
+    "keywords": "PHP, SQL, parsing",
     "authors": [
         {
             "name": "Mike Shmatov",
             "email": "shmatov@inbox.ru"
         }
     ],
+    "license": "MIT",
     "autoload": {
         "psr-4": {
             "Tiny\\Sql\\": "src/"
