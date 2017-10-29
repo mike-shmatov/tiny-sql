@@ -1,7 +1,7 @@
 {
     "name": "tiny/sql",
-    "description": "SQL tools library",
-    "keywords": "PHP, SQL, parsing",
+    "description": "SQL parsing library",
+    "keywords": ["PHP", "SQL", "parsing"],
     "authors": [
         {
             "name": "Mike Shmatov",
